@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-deployment
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: gateway-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gateway-deployment
+    spec:
+      containers:
+      - name: gateway
+        image: "gateway"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 4000
+        resources:
+          limits:
+            cpu: 150m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        env:
+          - name: ACCOUNTS_URI
+            value: http://accounts-service.dinoverse.svc.cluster.local
+          - name: REVIEWS_URI
+            value: http://reviews-service.dinoverse.svc.cluster.local
+          - name: INVENTORY_URI
+            value: http://inventory-service.dinoverse.svc.cluster.local
+          - name: PRODUCTS_URI
+            value: http://products-service.dinoverse.svc.cluster.local
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-service
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 4000
+  selector:
+    app: gateway-deployment
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: gateway
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  tls:
+    - secretName: minikube-dev-tls
+      hosts:
+        - minikube.dev
+  rules:
+    - host: minikube.dev
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: gateway-service
+              servicePort: 4000

@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accounts-deployment
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: accounts-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: accounts-deployment
+    spec:
+      containers:
+      - name: accounts
+        image: "accounts"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 4001
+        resources:
+          limits:
+            cpu: 150m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: accounts-service
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 4001
+  selector:
+    app: accounts-deployment
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: accounts
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  tls:
+    - secretName: minikube-dev-tls
+      hosts:
+        - minikube.dev
+  rules:
+    - host: minikube.dev
+      http:
+        paths:
+          - path: /accounts
+            backend:
+              serviceName: accounts-service
+              servicePort: 4001

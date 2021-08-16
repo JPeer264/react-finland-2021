@@ -1,0 +1,34 @@
+config:
+  target: "https://minikube.dev"
+  phases:
+    - duration: 120
+      arrivalRate: 1
+      name: Warm up
+    # - duration: 60
+    #   arrivalRate: 5
+    #   rampTo: 10
+    #   name: Ramp up load
+    # - duration: 120
+    #   arrivalRate: 10
+    #   name: Sustained load
+scenarios:
+  - flow:
+    - post:
+        url: "/"
+        headers:
+          Content-Type: "application/json"
+        json:
+          query:
+            |-
+              query Query {
+                topProducts {
+                  name
+                  reviews {
+                    id
+                    author {
+                      name
+                    }
+                  }
+                }
+              }
+

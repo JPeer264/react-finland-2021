@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reviews-deployment
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: reviews-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: reviews-deployment
+    spec:
+      containers:
+      - name: reviews
+        image: "reviews"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 4002
+        resources:
+          limits:
+            cpu: 150m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reviews-service
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 4002
+  selector:
+    app: reviews-deployment
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: reviews
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  tls:
+    - secretName: minikube-dev-tls
+      hosts:
+        - minikube.dev
+  rules:
+    - host: minikube.dev
+      http:
+        paths:
+          - path: /reviews
+            backend:
+              serviceName: reviews-service
+              servicePort: 4002

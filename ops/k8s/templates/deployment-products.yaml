@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: products-deployment
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: products-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: products-deployment
+    spec:
+      containers:
+      - name: products
+        image: "products"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 4003
+        resources:
+          limits:
+            cpu: 150m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-service
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 4003
+  selector:
+    app: products-deployment
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: products
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  tls:
+    - secretName: minikube-dev-tls
+      hosts:
+        - minikube.dev
+  rules:
+    - host: minikube.dev
+      http:
+        paths:
+          - path: /products
+            backend:
+              serviceName: products-service
+              servicePort: 4003

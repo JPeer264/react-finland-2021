@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-deployment
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: inventory-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: inventory-deployment
+    spec:
+      containers:
+      - name: inventory
+        image: "inventory"
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 4004
+        resources:
+          limits:
+            cpu: 150m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 4004
+  selector:
+    app: inventory-deployment
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: inventory
+  namespace: dinoverse
+  annotations:
+    meta.helm.sh/release-namespace: dinoverse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    meta.helm.sh/release-name: {{ .Chart.Name }}
+spec:
+  tls:
+    - secretName: minikube-dev-tls
+      hosts:
+        - minikube.dev
+  rules:
+    - host: minikube.dev
+      http:
+        paths:
+          - path: /inventory
+            backend:
+              serviceName: inventory-service
+              servicePort: 4004
